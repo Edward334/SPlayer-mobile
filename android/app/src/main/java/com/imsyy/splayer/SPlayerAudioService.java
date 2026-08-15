@@ -56,7 +56,7 @@ public class SPlayerAudioService extends Service {
                 .setSmallIcon(android.R.drawable.ic_media_play)
                 .setOngoing(true)
                 .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
-                .setStyle(new Notification.MediaStyle().setMediaSession(mediaSession.getSessionToken()))
+                .setStyle(new NotificationCompat.MediaStyle().setMediaSession(mediaSession.getSessionToken()))
                 .build();
         startForeground(NOTIFICATION_ID, notification);
     }

@@ -120,7 +120,8 @@ public class SPlayerAudioPlugin extends Plugin {
 
     @PluginMethod
     public void setVolume(PluginCall call) {
-        float volume = (float) call.getDouble("volume", 1.0);
+        Double requestedVolume = call.getDouble("volume");
+        float volume = requestedVolume == null ? 1.0f : requestedVolume.floatValue();
         ensurePlayer();
         if (prepared) player.setVolume(volume, volume);
         call.resolve();
@@ -129,7 +130,9 @@ public class SPlayerAudioPlugin extends Plugin {
     @PluginMethod
     public void setRate(PluginCall call) {
         if (player != null && prepared && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            player.setPlaybackParams(player.getPlaybackParams().setSpeed((float) call.getDouble("rate", 1.0)));
+            Double requestedRate = call.getDouble("rate");
+            float rate = requestedRate == null ? 1.0f : requestedRate.floatValue();
+            player.setPlaybackParams(player.getPlaybackParams().setSpeed(rate));
         }
         call.resolve();
     }
