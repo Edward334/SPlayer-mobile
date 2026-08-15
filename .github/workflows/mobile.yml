@@ -52,6 +52,8 @@ jobs:
           pnpm typecheck
       - name: Build web assets
         run: pnpm exec electron-vite build
+      - name: Remove compressed web assets for Android
+        run: find out/renderer -type f -name "*.gz" -delete
       - name: Sync Capacitor Android project
         run: pnpm exec cap sync android
       - name: Set up Java
