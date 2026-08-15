@@ -13,7 +13,6 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import androidx.media.app.NotificationCompat.MediaStyle;
 
 public class SPlayerAudioService extends Service {
     private static final String CHANNEL_ID = "splayer-playback";
@@ -57,7 +56,6 @@ public class SPlayerAudioService extends Service {
                 .setSmallIcon(android.R.drawable.ic_media_play)
                 .setOngoing(true)
                 .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
-                .setStyle(new MediaStyle().setMediaSession(mediaSession.getSessionToken()))
                 .build();
         startForeground(NOTIFICATION_ID, notification);
     }
