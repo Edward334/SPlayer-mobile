@@ -1,12 +1,14 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, AxiosResponse } from "axios";
 import { isDev } from "./env";
+import { isCapacitor } from "./env";
 import { useSettingStore } from "@/stores";
 import { getCookie } from "./cookie";
 import { isLogin } from "./auth";
 import axiosRetry from "axios-retry";
+import { mobileNeteaseRequest } from "@/platform/netease-mobile/request";
 
 // 全局地址
-const baseURL: string = String(isDev ? "/api/netease" : import.meta.env["VITE_API_URL"]);
+const baseURL = isDev ? "/api/netease" : import.meta.env["VITE_API_URL"] || "/api/netease";
 
 // 基础配置
 const server: AxiosInstance = axios.create({
@@ -102,6 +104,21 @@ server.interceptors.response.use(
 
 // 请求
 const request = async <T = any>(config: AxiosRequestConfig): Promise<T> => {
+  if (isCapacitor && !config.baseURL) {
+    const settingStore = useSettingStore();
+    const params: Record<string, any> = {
+      ...(config.params as Record<string, any> | undefined),
+    };
+    if (config.data && typeof config.data === "object" && !(config.data instanceof FormData)) {
+      Object.assign(params, config.data);
+    }
+    const musicU = getCookie("MUSIC_U");
+    if (!params.noCookie && (isLogin() || musicU)) {
+      params.cookie = `MUSIC_U=${musicU};os=pc;`;
+    }
+    if (settingStore.useRealIP && settingStore.realIP) params.realIP = settingStore.realIP;
+    return (await mobileNeteaseRequest(String(config.url), params)) as T;
+  }
   // 返回请求数据
   const { data } = await server.request(config);
   return data as T;

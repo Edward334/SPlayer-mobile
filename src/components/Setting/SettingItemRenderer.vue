@@ -383,12 +383,19 @@ const activeActions = computed(() => {
   padding: 16px;
 }
 
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 20px;
+}
+
 .control-wrapper {
   display: flex;
   align-items: center;
   gap: 12px;
   justify-content: flex-end;
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .set {
@@ -402,8 +409,31 @@ const activeActions = computed(() => {
   }
 
   @media (max-width: 768px) {
-    width: 140px;
-    min-width: 140px;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  :deep(.n-card__content) {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .label {
+    padding-right: 0;
+  }
+
+  .control-wrapper {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .set.n-switch {
+    width: max-content;
+    min-width: auto;
   }
 }
 </style>

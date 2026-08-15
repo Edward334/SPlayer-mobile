@@ -43,17 +43,27 @@
         </n-h3>
       </n-flex>
       <!-- 列表 -->
+      <n-result
+        v-if="failedSections.has(sectionKey(item)) && item.list.length === 0"
+        class="rec-error"
+        status="error"
+        title="在线内容加载失败"
+      >
+        <template #footer>
+          <n-button type="primary" secondary @click.stop="getAllRecData">重新加载</n-button>
+        </template>
+      </n-result>
       <ArtistList
-        v-if="item.type === 'artist'"
+        v-else-if="item.type === 'artist'"
         :data="item.list"
-        :loading="true"
+        :loading="loading && !failedSections.has(sectionKey(item))"
         :hiddenCover="settingStore.hiddenCovers.home"
       />
       <CoverList
         v-else
         :data="item.list"
         :type="item.type"
-        :loading="true"
+        :loading="loading && !failedSections.has(sectionKey(item))"
         :hiddenCover="settingStore.hiddenCovers.home"
       />
     </div>
@@ -101,6 +111,9 @@ const router = useRouter();
 const dataStore = useDataStore();
 const musicStore = useMusicStore();
 const settingStore = useSettingStore();
+const loading = ref(false);
+const hasRequested = ref(false);
+const failedSections = ref<Set<keyof RecDataType>>(new Set());
 
 // 日推标题
 const dailySongsTitle = computed(() => {
@@ -165,8 +178,21 @@ const sortedRecData = computed(() => {
   return sections;
 });
 
+const sectionKey = (item: RecItemTypeBase): keyof RecDataType => {
+  const entry = Object.entries(recData.value).find(([, value]) => value === item);
+  return (entry?.[0] || "playlist") as keyof RecDataType;
+};
+
+const markSectionFailed = (key: keyof RecDataType) => {
+  failedSections.value = new Set([...failedSections.value, key]);
+};
+
 // 获取全部推荐
 const getAllRecData = async () => {
+  if (loading.value) return;
+  loading.value = true;
+  hasRequested.value = true;
+  failedSections.value = new Set();
   try {
     // 延时
     await sleep(300);
@@ -183,6 +209,7 @@ const getAllRecData = async () => {
         playlistRes.result?.filter((pl: any) => !pl.name.includes("私人雷达")),
       );
     } catch (error) {
+      markSectionFailed("playlist");
       console.error("Error getting playlist:", error);
     }
 
@@ -191,6 +218,7 @@ const getAllRecData = async () => {
       const radarRes = await getCacheData(radarPlaylist, { key: "radarRec", time: 30 });
       recData.value.radar.list = formatCoverList(radarRes);
     } catch (error) {
+      markSectionFailed("radar");
       console.error("Error getting radar:", error);
     }
 
@@ -199,6 +227,7 @@ const getAllRecData = async () => {
       const artistRes = await getCacheData(topArtists, { key: "artistRec", time: 10 }, 6);
       recData.value.artist.list = formatArtistsList(artistRes.artists);
     } catch (error) {
+      markSectionFailed("artist");
       console.error("Error getting artist:", error);
     }
 
@@ -207,6 +236,7 @@ const getAllRecData = async () => {
       const videoRes = await getCacheData(allMv, { key: "videoRec", time: 10 });
       recData.value.video.list = formatCoverList(videoRes.data);
     } catch (error) {
+      markSectionFailed("video");
       console.error("Error getting video:", error);
     }
 
@@ -215,6 +245,7 @@ const getAllRecData = async () => {
       const radioRes = await getCacheData(radioRecommend, { key: "radioRec", time: 10 });
       recData.value.radio.list = formatCoverList(radioRes.djRadios);
     } catch (error) {
+      markSectionFailed("radio");
       console.error("Error getting radio:", error);
     }
 
@@ -223,19 +254,22 @@ const getAllRecData = async () => {
       const albumRes = await getCacheData(newAlbumsAll, { key: "albumRec", time: 10 });
       recData.value.album.list = formatCoverList(albumRes.albums);
     } catch (error) {
+      markSectionFailed("album");
       console.error("Error getting album:", error);
     }
   } catch (error) {
     window.$message.error("个性化推荐获取出错");
     console.error("Error getting personalized data:", error);
+  } finally {
+    loading.value = false;
   }
 };
 
-onActivated(getAllRecData);
-
-onMounted(() => {
-  getAllRecData();
+onActivated(() => {
+  if (!hasRequested.value) getAllRecData();
 });
+
+onMounted(getAllRecData);
 </script>
 
 <style lang="scss" scoped>
@@ -302,5 +336,11 @@ onMounted(() => {
       }
     }
   }
+}
+.rec-error {
+  margin-top: 8px;
+  padding: 24px 0;
+  border-radius: 8px;
+  background: var(--surface-container-hex);
 }
 </style>

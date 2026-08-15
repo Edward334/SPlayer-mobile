@@ -512,6 +512,8 @@ onMounted(() => {
         padding: 16px;
       }
       .label {
+        min-width: 0;
+        flex: 1 1 auto;
         display: flex;
         flex-direction: column;
         padding-right: 20px;
@@ -542,10 +544,25 @@ onMounted(() => {
         }
       }
       .set-item {
+        .n-card__content {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .label {
+          padding-right: 0;
+        }
+        .control-wrapper {
+          width: 100%;
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
         .set {
-          @media (max-width: 768px) {
-            width: 140px;
-            min-width: 140px;
+          width: 100%;
+          min-width: 0;
+          &.n-switch {
+            width: max-content;
+            min-width: auto;
           }
         }
       }

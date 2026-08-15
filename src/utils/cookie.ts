@@ -40,7 +40,6 @@ export const setCookies = (cookieValue: string) => {
     const value = nameValuePair[1]?.trim();
     // 跳过无效的cookie
     if (!name || !value) return;
-    console.info(`name: ${name}, value: ${value}`);
     // 设置 cookie
     document.cookie = `${name}=${value}; ${expires}; path=/`;
     // 保存 cookie
