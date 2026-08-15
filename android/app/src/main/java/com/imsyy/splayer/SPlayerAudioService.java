@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
 public class SPlayerAudioService extends Service {
     private static final String CHANNEL_ID = "splayer-playback";
@@ -50,12 +49,13 @@ public class SPlayerAudioService extends Service {
         mediaSession.setActive(true);
         updateMetadata(pendingTitle, pendingArtist, "");
         updatePlaybackState(pendingPlaying, pendingPositionMs);
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification notification = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("SPlayer")
                 .setContentText("正在播放音乐")
                 .setSmallIcon(android.R.drawable.ic_media_play)
                 .setOngoing(true)
-                .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .setStyle(new Notification.MediaStyle().setMediaSession(mediaSession.getSessionToken()))
                 .build();
         startForeground(NOTIFICATION_ID, notification);
     }
