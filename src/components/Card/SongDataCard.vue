@@ -34,7 +34,7 @@
         </div>
         <div class="album text-hidden">
           <SvgIcon name="Album" :depth="3" />
-          <n-text v-if="isObject(data.album)" class="album-text">
+          <n-text v-if="isMetaData(data.album)" class="album-text">
             {{ data.album?.name || "未知专辑" }}
           </n-text>
           <n-text v-else class="album-text">
@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import type { SongType } from "@/types/main";
 import { coverLoaded } from "@/utils/helper";
-import { isObject } from "lodash-es";
+import { isMetaData } from "@/utils/typeGuards";
 import { removeBrackets } from "@/utils/format";
 import { useSettingStore } from "@/stores";
 

@@ -9,7 +9,7 @@ import {
   TASKBAR_IPC_CHANNELS,
   type TaskbarLyricSettings,
 } from "@/types/shared";
-import { isElectron, isWin, isMac } from "@/utils/env";
+import { isAndroid, isElectron, isWin, isMac } from "@/utils/env";
 import { descMultiline } from "@/utils/format";
 import { openAMLLServer, openExcludeLyric, openFontManager } from "@/utils/modal";
 import { cloneDeep, isEqual } from "lodash-es";
@@ -607,7 +607,7 @@ export const useLyricSettings = (): SettingConfig => {
       {
         title: "桌面歌词",
         tags: [{ text: "Beta", type: "warning" }],
-        show: isElectron,
+        show: isElectron || isAndroid,
         items: [
           {
             key: "showDesktopLyric",

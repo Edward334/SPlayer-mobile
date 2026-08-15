@@ -13,6 +13,12 @@ export const isLinux = userAgent.includes("Linux");
 /** 是否为 Electron 环境 */
 export const isElectron = userAgent.includes("Electron") || typeof window?.electron !== "undefined";
 
+/** 是否为 Capacitor 原生环境 */
+export const isCapacitor = Boolean(window.Capacitor?.isNativePlatform?.());
+
+/** 是否为 Android 原生环境 */
+export const isAndroid = window.Capacitor?.getPlatform?.() === "android";
+
 /** 是否为移动端 */
 export const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
   userAgent,

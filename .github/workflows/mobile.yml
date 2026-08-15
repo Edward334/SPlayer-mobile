@@ -1,0 +1,106 @@
+name: Build Mobile
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "android/**"
+      - "ios/**"
+      - "capacitor.config.ts"
+      - "electron.vite.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/mobile.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "android/**"
+      - "ios/**"
+      - "capacitor.config.ts"
+      - "electron.vite.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/mobile.yml"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 22.x
+
+jobs:
+  android:
+    name: Android debug build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Lint and type check
+        run: |
+          pnpm lint
+          pnpm typecheck
+      - name: Build web assets
+        run: pnpm exec electron-vite build
+      - name: Sync Capacitor Android project
+        run: pnpm exec cap sync android
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Build Android APK
+        run: ./android/gradlew -p android assembleDebug --no-daemon
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: splayer-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+
+  ios:
+    name: iOS simulator build
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Build web assets
+        run: pnpm exec electron-vite build
+      - name: Sync Capacitor iOS project
+        run: pnpm exec cap sync ios
+      - name: Build iOS simulator app
+        run: >-
+          xcodebuild
+          -workspace ios/App/App.xcworkspace
+          -scheme App
+          -sdk iphonesimulator
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath ios/build
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Upload iOS simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: splayer-ios-simulator
+          path: ios/build/Build/Products/Debug-iphonesimulator/App.app

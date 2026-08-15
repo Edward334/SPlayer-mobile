@@ -115,7 +115,7 @@
       <div v-if="musicStore.playSong.type !== 'radio'" class="album">
         <SvgIcon :depth="3" name="Album" size="20" />
         <span
-          v-if="isObject(musicStore.playSong.album)"
+          v-if="isMetaData(musicStore.playSong.album)"
           class="name-text text-hidden"
           @click="jumpPage({ name: 'album', query: { id: musicStore.playSong.album.id } })"
         >
@@ -145,7 +145,8 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router";
 import { useMusicStore, useStatusStore, useSettingStore } from "@/stores";
-import { debounce, isObject } from "lodash-es";
+import { debounce } from "lodash-es";
+import { isMetaData } from "@/utils/typeGuards";
 import { removeBrackets } from "@/utils/format";
 import { SongUnlockServer } from "@/core/player/SongManager";
 import { useLyricManager } from "@/core/player/LyricManager";

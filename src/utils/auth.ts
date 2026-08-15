@@ -15,7 +15,7 @@ import { likeSong } from "@/api/song";
 import { formatCoverList, formatArtistsList, formatSongsList } from "@/utils/format";
 import { useDataStore, useMusicStore, useLocalStore } from "@/stores";
 import { logout, refreshLogin } from "@/api/login";
-import { debounce, isFunction, type DebouncedFunc } from "lodash-es";
+import { debounce, type DebouncedFunc } from "lodash-es";
 import { isBeforeSixAM } from "./time";
 import { dailyRecommend } from "@/api/rec";
 import { isElectron } from "./env";
@@ -542,7 +542,7 @@ export const deleteSongs = async (
             ids.map((id) => id.toString()),
           );
           if (success) {
-            if (isFunction(callback)) callback();
+            callback?.();
             window.$message.success("删除成功");
           } else {
             window.$message.error("删除失败");
@@ -556,7 +556,7 @@ export const deleteSongs = async (
             window.$message.error(result.body?.message || "删除歌曲失败，请重试");
             return;
           }
-          if (isFunction(callback)) callback();
+          callback?.();
           window.$message.success("删除成功");
         } else {
           window.$message.error(result?.message || "删除歌曲失败，请重试");

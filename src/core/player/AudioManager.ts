@@ -1,5 +1,5 @@
 import { useSettingStore } from "@/stores";
-import { checkIsolationSupport, isElectron } from "@/utils/env";
+import { checkIsolationSupport, isCapacitor, isElectron } from "@/utils/env";
 import { TypedEventTarget } from "@/utils/TypedEventTarget";
 import { AudioElementPlayer } from "../audio-player/AudioElementPlayer";
 import { AUDIO_EVENTS, type AudioEventMap } from "../audio-player/BaseAudioPlayer";
@@ -12,6 +12,7 @@ import type {
   PlayOptions,
 } from "../audio-player/IPlaybackEngine";
 import { MpvPlayer, useMpvPlayer } from "../audio-player/MpvPlayer";
+import { NativeAudioPlayer } from "../audio-player/NativeAudioPlayer";
 import { getSharedAudioContext } from "../automix/SharedAudioContext";
 
 /**
@@ -33,8 +34,8 @@ class AudioManager extends TypedEventTarget<AudioEventMap> implements IPlaybackE
   /** 主音量 (用于 Crossfade 初始化) */
   private _masterVolume: number = 1.0;
 
-  /** 当前引擎类型：element | ffmpeg | mpv */
-  public readonly engineType: "element" | "ffmpeg" | "mpv";
+  /** 当前引擎类型：element | ffmpeg | mpv | native */
+  public readonly engineType: "element" | "ffmpeg" | "mpv" | "native";
 
   /** 引擎能力描述 */
   public readonly capabilities: EngineCapabilities;
@@ -42,8 +43,11 @@ class AudioManager extends TypedEventTarget<AudioEventMap> implements IPlaybackE
   constructor(playbackEngine: "web-audio" | "mpv", audioEngine: "element" | "ffmpeg") {
     super();
 
-    // 根据设置选择引擎
-    if (isElectron && playbackEngine === "mpv") {
+    // 移动端优先使用原生音频，插件缺失时由适配器回退到 Web 音频。
+    if (isCapacitor) {
+      this.engine = new NativeAudioPlayer();
+      this.engineType = "native";
+    } else if (isElectron && playbackEngine === "mpv") {
       const mpvPlayer = useMpvPlayer();
       mpvPlayer.init();
       this.engine = mpvPlayer;
@@ -146,8 +150,8 @@ class AudioManager extends TypedEventTarget<AudioEventMap> implements IPlaybackE
       fadeCurve?: FadeCurve;
     },
   ): Promise<void> {
-    // MPV 不支持 Web Audio API 级别的 Crossfade，回退到普通播放
-    if (this.engineType === "mpv") {
+    // 原生引擎暂不在 WebView 中创建第二个音频图，先使用原生淡入切换。
+    if (this.engineType === "mpv" || this.engineType === "native") {
       this.stop();
       if (options.onSwitch) options.onSwitch();
       await this.play(url, {

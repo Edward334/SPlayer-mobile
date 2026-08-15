@@ -28,9 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import type { SongType } from "@/types/main";
+import type { MetaData, SongType } from "@/types/main";
 import { useLocalStore, useSettingStore } from "@/stores";
-import { isArray, some } from "lodash-es";
+import { some } from "lodash-es";
 import { usePlayerController } from "@/core/player/PlayerController";
 
 const props = defineProps<{ data: SongType[] }>();
@@ -57,7 +57,9 @@ const formatArtistsList = (
   const allArtists = data.reduce(
     (acc, song) => {
       // 歌手信息
-      let artists = isArray(song.artists) ? song.artists : [song.artists];
+      let artists: (string | MetaData)[] = Array.isArray(song.artists)
+        ? song.artists
+        : [song.artists];
       // 分割歌手
       separators.forEach((separator) => {
         artists = artists.flatMap((artist: any) =>
