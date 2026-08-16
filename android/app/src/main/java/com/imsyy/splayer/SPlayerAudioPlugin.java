@@ -32,6 +32,7 @@ public class SPlayerAudioPlugin extends Plugin {
                 data.put("currentTime", player.getCurrentPosition() / 1000.0);
                 data.put("duration", player.getDuration() / 1000.0);
                 notifyListeners("timeUpdate", data);
+                SPlayerAudioService.updatePlaybackState(true, player.getCurrentPosition());
                 handler.postDelayed(this, 250);
             }
         }
@@ -61,10 +62,18 @@ public class SPlayerAudioPlugin extends Plugin {
             player.setDataSource(url);
             player.setOnPreparedListener(mp -> {
                 prepared = true;
-                SPlayerAudioService.updateMetadata(metadataTitle, metadataArtist, metadataArtwork);
+                SPlayerAudioService.updateMetadata(metadataTitle, metadataArtist, metadataArtwork, mp.getDuration());
                 call.resolve();
             });
-            player.setOnCompletionListener(mp -> notifyListeners("ended", new JSObject()));
+            player.setOnCompletionListener(mp -> {
+                handler.removeCallbacks(progressTicker);
+                SPlayerAudioService.updatePlaybackState(false, mp.getDuration());
+                JSObject update = new JSObject();
+                update.put("currentTime", mp.getDuration() / 1000.0);
+                update.put("duration", mp.getDuration() / 1000.0);
+                notifyListeners("timeUpdate", update);
+                notifyListeners("ended", new JSObject());
+            });
             player.setOnErrorListener((mp, what, extra) -> {
                 JSObject error = new JSObject();
                 error.put("errorCode", extra);
@@ -85,7 +94,8 @@ public class SPlayerAudioPlugin extends Plugin {
             return;
         }
         ContextCompat.startForegroundService(getContext(), new Intent(getContext(), SPlayerAudioService.class));
-        SPlayerAudioService.updateMetadata(metadataTitle, metadataArtist, metadataArtwork);
+        if (player.getDuration() > 0 && player.getCurrentPosition() >= player.getDuration()) player.seekTo(0);
+        SPlayerAudioService.updateMetadata(metadataTitle, metadataArtist, metadataArtwork, player.getDuration());
         SPlayerAudioService.updatePlaybackState(true, player.getCurrentPosition());
         player.start();
         notifyListeners("play", new JSObject());
@@ -104,6 +114,7 @@ public class SPlayerAudioPlugin extends Plugin {
 
     @PluginMethod
     public void stop(PluginCall call) {
+        handler.removeCallbacks(progressTicker);
         if (player != null && prepared) player.stop();
         prepared = false;
         SPlayerAudioService.updatePlaybackState(false, 0);
@@ -178,8 +189,10 @@ public class SPlayerAudioPlugin extends Plugin {
 
     static void handleMediaSeek(long positionMs) {
         if (activeInstance != null && activeInstance.player != null && activeInstance.prepared) {
-            activeInstance.player.seekTo((int) positionMs);
-            SPlayerAudioService.updatePlaybackState(activeInstance.player.isPlaying(), positionMs);
+            long duration = activeInstance.player.getDuration();
+            long safePosition = Math.max(0, Math.min(positionMs, duration));
+            activeInstance.player.seekTo((int) safePosition);
+            SPlayerAudioService.updatePlaybackState(activeInstance.player.isPlaying(), safePosition);
         }
     }
 

@@ -72,6 +72,10 @@ export class NativeAudioPlayer implements IPlaybackEngine {
         artist,
         artwork: song.coverSize?.m || song.cover,
       });
+      const loadedState = await this.plugin.getState();
+      this.state.duration = Number(loadedState.duration ?? 0);
+      this.state.currentTime = 0;
+      this.state.paused = true;
       if (options?.seek != null) await this.plugin.seek({ time: options.seek });
     }
     await this.plugin.play();
@@ -181,7 +185,10 @@ export class NativeAudioPlayer implements IPlaybackEngine {
 
   public get currentTime(): number {
     if (!this.plugin) return this.fallback.currentTime;
-    return this.state.paused ? this.state.currentTime : this.getWallClockTime();
+    const currentTime = this.state.paused ? this.state.currentTime : this.getWallClockTime();
+    return this.state.duration > 0
+      ? Math.min(currentTime, this.state.duration)
+      : Math.max(0, currentTime);
   }
 
   public get paused(): boolean {
@@ -221,6 +228,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
           this.syncWallClock();
           this.state.currentTime = Number(payload.currentTime ?? this.state.currentTime);
           this.state.duration = Number(payload.duration ?? this.state.duration);
+          if (this.state.duration > 0)
+            this.state.currentTime = Math.min(this.state.currentTime, this.state.duration);
           this.wallClockBaseTime = this.state.currentTime;
           if (!this.state.paused) this.wallClockStartedAt = performance.now();
         } else if (nativeEvent === "error") {
@@ -228,9 +237,15 @@ export class NativeAudioPlayer implements IPlaybackEngine {
         } else if (nativeEvent === "play") {
           this.state.paused = false;
           this.startWallClock();
-        } else if (nativeEvent === "pause" || nativeEvent === "ended") {
+        } else if (nativeEvent === "pause") {
           this.syncWallClock();
           this.state.paused = true;
+          this.wallClockStartedAt = 0;
+          this.stopStatePolling();
+        } else if (nativeEvent === "ended") {
+          this.state.currentTime = this.state.duration;
+          this.state.paused = true;
+          this.wallClockBaseTime = this.state.currentTime;
           this.wallClockStartedAt = 0;
           this.stopStatePolling();
         }
@@ -243,7 +258,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   private getWallClockTime(): number {
     if (!this.wallClockStartedAt) return this.state.currentTime;
     const elapsed = (performance.now() - this.wallClockStartedAt) / 1000;
-    return this.wallClockBaseTime + elapsed * this.state.rate;
+    const time = this.wallClockBaseTime + elapsed * this.state.rate;
+    return this.state.duration > 0 ? Math.min(time, this.state.duration) : time;
   }
 
   private syncWallClock(): void {
@@ -265,6 +281,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
         this.state.currentTime = Number(state.currentTime ?? this.state.currentTime);
         this.state.duration = Number(state.duration ?? this.state.duration);
         this.state.paused = Boolean(state.paused);
+        if (this.state.duration > 0)
+          this.state.currentTime = Math.min(this.state.currentTime, this.state.duration);
         this.dispatch(AUDIO_EVENTS.TIME_UPDATE, state);
       });
     }, 250);

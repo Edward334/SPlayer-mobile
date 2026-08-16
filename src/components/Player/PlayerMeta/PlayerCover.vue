@@ -1,7 +1,9 @@
 <template>
   <!-- 全屏封面 -->
   <div
-    v-if="settingStore.playerType === 'fullscreen' && !isTablet && !isMobile"
+    v-if="
+      settingStore.playerType === 'fullscreen' && ((!isTablet && !isMobile) || mobileFullscreen)
+    "
     class="full-screen"
     :style="{ '--gradient-percent': settingStore.playerFullscreenGradient + '%' }"
   >
@@ -62,6 +64,8 @@ import { isEmpty } from "lodash-es";
 const musicStore = useMusicStore();
 const statusStore = useStatusStore();
 const settingStore = useSettingStore();
+const props = defineProps<{ mobileFullscreen?: boolean }>();
+const mobileFullscreen = computed(() => props.mobileFullscreen === true);
 
 const { isTablet } = useMobile();
 

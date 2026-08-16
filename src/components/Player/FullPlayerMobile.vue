@@ -3,7 +3,7 @@
     <!-- 顶部功能栏 -->
     <div class="top-bar">
       <!-- 收起按钮 -->
-      <div class="btn" @click.stop="statusStore.showFullPlayer = false">
+      <div class="btn" aria-label="返回" @click.stop="statusStore.showFullPlayer = false">
         <SvgIcon name="Down" :size="26" />
       </div>
     </div>
@@ -18,7 +18,10 @@
       <div class="page info-page">
         <!-- 封面 -->
         <div class="cover-section">
-          <PlayerCover :no-lyric="true" />
+          <PlayerCover
+            :no-lyric="true"
+            :mobile-fullscreen="settingStore.playerType === 'fullscreen'"
+          />
         </div>
 
         <!-- 歌曲信息区域 -->
@@ -267,8 +270,8 @@ const contentTransform = computed(() => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    padding: 0 24px;
+    justify-content: flex-start;
+    padding: 0 16px;
     z-index: 10;
     .btn {
       width: 40px;
@@ -305,6 +308,7 @@ const contentTransform = computed(() => {
       position: relative;
     }
     .info-page {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -342,8 +346,19 @@ const contentTransform = computed(() => {
             }
           }
         }
+        :deep(.full-screen) {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          mask-image: none;
+          -webkit-mask-image: none;
+          z-index: 0;
+        }
       }
       .info-group {
+        position: relative;
+        z-index: 1;
         width: 100%;
         display: flex;
         flex-direction: column;
@@ -470,7 +485,7 @@ const contentTransform = computed(() => {
       }
     }
     .lyric-page {
-      padding: 0 24px;
+      padding: 0 12px;
       padding-top: 16px;
       display: flex;
       flex-direction: column;
@@ -480,7 +495,7 @@ const contentTransform = computed(() => {
         gap: 16px;
         margin-bottom: 20px;
         flex-shrink: 0;
-        padding: 10px 20px 0;
+        padding: 10px 0 0;
         .lyric-cover {
           width: 50px;
           height: 50px;
@@ -537,6 +552,20 @@ const contentTransform = computed(() => {
         flex: 1;
         min-height: 0;
         position: relative;
+        width: 100%;
+        overflow: hidden;
+        :deep(.player-lyric),
+        :deep(.lyric),
+        :deep(.lyric-scroll-container),
+        :deep(.lyric-content),
+        :deep(.lrc-line) {
+          width: 100%;
+          max-width: none;
+        }
+        :deep(.lyric-scroll-container) {
+          padding-left: 0;
+          padding-right: 8px;
+        }
       }
     }
   }

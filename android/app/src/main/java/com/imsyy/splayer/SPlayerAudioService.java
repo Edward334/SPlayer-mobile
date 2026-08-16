@@ -20,6 +20,8 @@ public class SPlayerAudioService extends Service {
     private static SPlayerAudioService activeService;
     private static String pendingTitle = "SPlayer";
     private static String pendingArtist = "";
+    private static String pendingArtwork = "";
+    private static long pendingDurationMs;
     private static boolean pendingPlaying;
     private static long pendingPositionMs;
 
@@ -47,7 +49,7 @@ public class SPlayerAudioService extends Service {
         });
         mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setActive(true);
-        updateMetadata(pendingTitle, pendingArtist, "");
+        updateMetadata(pendingTitle, pendingArtist, pendingArtwork, pendingDurationMs);
         updatePlaybackState(pendingPlaying, pendingPositionMs);
         Notification notification = new Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("SPlayer")
@@ -82,14 +84,18 @@ public class SPlayerAudioService extends Service {
         super.onDestroy();
     }
 
-    static void updateMetadata(String title, String artist, String artwork) {
+    static void updateMetadata(String title, String artist, String artwork, long durationMs) {
         pendingTitle = title;
         pendingArtist = artist;
+        pendingArtwork = artwork == null ? "" : artwork;
+        pendingDurationMs = Math.max(0, durationMs);
         if (activeService == null || activeService.mediaSession == null) return;
         MediaMetadata metadata = new MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, "SPlayer")
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, pendingDurationMs)
+                .putString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, pendingArtwork)
                 .build();
         activeService.mediaSession.setMetadata(metadata);
     }
@@ -98,11 +104,13 @@ public class SPlayerAudioService extends Service {
         pendingPlaying = playing;
         pendingPositionMs = positionMs;
         if (activeService == null || activeService.mediaSession == null) return;
+        long safePosition = Math.max(0, positionMs);
+        if (pendingDurationMs > 0) safePosition = Math.min(safePosition, pendingDurationMs);
         int state = playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED;
         PlaybackState playbackState = new PlaybackState.Builder()
                 .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE
                         | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_PLAY_PAUSE)
-                .setState(state, positionMs, 1.0f)
+                .setState(state, safePosition, 1.0f)
                 .build();
         activeService.mediaSession.setPlaybackState(playbackState);
     }
