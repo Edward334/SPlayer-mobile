@@ -1,9 +1,7 @@
 <template>
   <!-- 全屏封面 -->
   <div
-    v-if="
-      settingStore.playerType === 'fullscreen' && ((!isTablet && !isMobile) || mobileFullscreen)
-    "
+    v-if="settingStore.playerType === 'fullscreen' && !isMobileLayout"
     class="full-screen"
     :style="{ '--gradient-percent': settingStore.playerFullscreenGradient + '%' }"
   >
@@ -58,16 +56,14 @@ import { useMobile } from "@/composables/useMobile";
 import { useBlobURLManager } from "@/core/resource/BlobURLManager";
 import { useSettingStore, useStatusStore, useMusicStore } from "@/stores";
 import { isLogin } from "@/utils/auth";
-import { isElectron, isMobile } from "@/utils/env";
+import { isElectron } from "@/utils/env";
 import { isEmpty } from "lodash-es";
 
 const musicStore = useMusicStore();
 const statusStore = useStatusStore();
 const settingStore = useSettingStore();
-const props = defineProps<{ mobileFullscreen?: boolean }>();
-const mobileFullscreen = computed(() => props.mobileFullscreen === true);
 
-const { isTablet } = useMobile();
+const { isMobileLayout } = useMobile();
 
 // 本地歌曲高清封面（Data URL）
 const localCoverDataUrl = ref<string>("");

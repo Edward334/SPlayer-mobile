@@ -25,7 +25,7 @@ export interface NativeAudioPlugin {
   setRate: (options: { rate: number }) => Promise<void>;
   getState: () => Promise<NativeAudioState>;
   addListener: (
-    eventName: "timeUpdate" | "play" | "pause" | "ended" | "error",
+    eventName: "timeUpdate" | "play" | "pause" | "ended" | "error" | "mediaAction",
     listenerFunc: (event: Record<string, unknown>) => void,
   ) => Promise<PluginListenerHandle>;
 }

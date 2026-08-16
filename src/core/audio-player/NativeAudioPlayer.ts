@@ -60,6 +60,7 @@ export class NativeAudioPlayer implements IPlaybackEngine {
 
   public async play(url?: string, options?: PlayOptions): Promise<void> {
     if (!this.plugin) return this.fallback.play(url, options);
+    const shouldPlay = options?.autoPlay ?? true;
     if (url && url !== this.state.src) {
       this.state.src = url;
       const song = useMusicStore().playSong;
@@ -76,8 +77,14 @@ export class NativeAudioPlayer implements IPlaybackEngine {
       this.state.duration = Number(loadedState.duration ?? 0);
       this.state.currentTime = 0;
       this.state.paused = true;
-      if (options?.seek != null) await this.plugin.seek({ time: options.seek });
     }
+    if (options?.seek != null) {
+      const seek = this.clampTime(options.seek);
+      await this.plugin.seek({ time: seek });
+      this.state.currentTime = seek;
+      this.wallClockBaseTime = seek;
+    }
+    if (!shouldPlay) return;
     await this.plugin.play();
     this.state.paused = false;
     this.startWallClock();
@@ -121,10 +128,11 @@ export class NativeAudioPlayer implements IPlaybackEngine {
       void this.fallback.seek(time);
       return;
     }
-    this.state.currentTime = time;
-    this.wallClockBaseTime = time;
+    const safeTime = this.clampTime(time);
+    this.state.currentTime = safeTime;
+    this.wallClockBaseTime = safeTime;
     if (!this.state.paused) this.wallClockStartedAt = performance.now();
-    void this.plugin.seek({ time });
+    void this.plugin.seek({ time: safeTime });
   }
 
   public setVolume(value: number): void {
@@ -292,6 +300,11 @@ export class NativeAudioPlayer implements IPlaybackEngine {
     if (this.statePollTimer === null) return;
     clearInterval(this.statePollTimer);
     this.statePollTimer = null;
+  }
+
+  private clampTime(time: number): number {
+    const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+    return this.state.duration > 0 ? Math.min(safeTime, this.state.duration) : safeTime;
   }
 
   private dispatch(type: string, detail?: unknown): void {

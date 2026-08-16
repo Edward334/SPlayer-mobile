@@ -173,15 +173,22 @@ public class SPlayerAudioPlugin extends Plugin {
 
     static void handleMediaPlay() {
         if (activeInstance != null && activeInstance.player != null && activeInstance.prepared) {
+            if (activeInstance.player.getDuration() > 0
+                    && activeInstance.player.getCurrentPosition() >= activeInstance.player.getDuration()) {
+                activeInstance.player.seekTo(0);
+            }
             activeInstance.player.start();
             SPlayerAudioService.updatePlaybackState(true, activeInstance.player.getCurrentPosition());
             activeInstance.notifyListeners("play", new JSObject());
+            activeInstance.handler.removeCallbacks(activeInstance.progressTicker);
+            activeInstance.handler.post(activeInstance.progressTicker);
         }
     }
 
     static void handleMediaPause() {
         if (activeInstance != null && activeInstance.player != null && activeInstance.prepared && activeInstance.player.isPlaying()) {
             activeInstance.player.pause();
+            activeInstance.handler.removeCallbacks(activeInstance.progressTicker);
             SPlayerAudioService.updatePlaybackState(false, activeInstance.player.getCurrentPosition());
             activeInstance.notifyListeners("pause", new JSObject());
         }
@@ -194,6 +201,21 @@ public class SPlayerAudioPlugin extends Plugin {
             activeInstance.player.seekTo((int) safePosition);
             SPlayerAudioService.updatePlaybackState(activeInstance.player.isPlaying(), safePosition);
         }
+    }
+
+    static void handleMediaNext() {
+        notifyMediaAction("next");
+    }
+
+    static void handleMediaPrevious() {
+        notifyMediaAction("previous");
+    }
+
+    private static void notifyMediaAction(String action) {
+        if (activeInstance == null) return;
+        JSObject event = new JSObject();
+        event.put("action", action);
+        activeInstance.notifyListeners("mediaAction", event);
     }
 
     private void ensurePlayer() {

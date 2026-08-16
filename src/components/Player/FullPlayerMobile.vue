@@ -1,7 +1,7 @@
 <template>
   <div class="full-player-mobile" ref="mobileStart">
     <!-- 顶部功能栏 -->
-    <div class="top-bar">
+    <div v-if="pageIndex === 0" class="top-bar">
       <!-- 收起按钮 -->
       <div class="btn" aria-label="返回" @click.stop="statusStore.showFullPlayer = false">
         <SvgIcon name="Down" :size="26" />
@@ -18,10 +18,7 @@
       <div class="page info-page">
         <!-- 封面 -->
         <div class="cover-section">
-          <PlayerCover
-            :no-lyric="true"
-            :mobile-fullscreen="settingStore.playerType === 'fullscreen'"
-          />
+          <PlayerCover :no-lyric="true" />
         </div>
 
         <!-- 歌曲信息区域 -->
@@ -306,9 +303,10 @@ const contentTransform = computed(() => {
       height: 100%;
       flex-shrink: 0;
       position: relative;
+      min-width: 0;
+      box-sizing: border-box;
     }
     .info-page {
-      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -346,19 +344,8 @@ const contentTransform = computed(() => {
             }
           }
         }
-        :deep(.full-screen) {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          mask-image: none;
-          -webkit-mask-image: none;
-          z-index: 0;
-        }
       }
       .info-group {
-        position: relative;
-        z-index: 1;
         width: 100%;
         display: flex;
         flex-direction: column;
@@ -561,6 +548,7 @@ const contentTransform = computed(() => {
         :deep(.lrc-line) {
           width: 100%;
           max-width: none;
+          box-sizing: border-box;
         }
         :deep(.lyric-scroll-container) {
           padding-left: 0;

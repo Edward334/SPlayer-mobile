@@ -6,7 +6,7 @@ import type { RepeatModeType, ShuffleModeType } from "@/types/shared/play-mode";
 import { type AudioAnalysis } from "@/types/audio/automix";
 import { calculateLyricIndex } from "@/utils/calc";
 import { getCoverColor } from "@/utils/color";
-import { isAndroid, isElectron, isMac } from "@/utils/env";
+import { isElectron, isMac } from "@/utils/env";
 import { getPlayerInfoObj, getPlaySongData } from "@/utils/format";
 import { handleSongQuality, shuffleArray, sleep } from "@/utils/helper";
 import lastfmScrobbler from "@/utils/lastfmScrobbler";
@@ -22,11 +22,6 @@ import { mediaSessionManager } from "./MediaSessionManager";
 import * as playerIpc from "./PlayerIpc";
 import { PlayModeManager } from "./PlayModeManager";
 import { useSongManager } from "./SongManager";
-import {
-  hideAndroidOverlayLyric,
-  requestAndroidOverlayPermission,
-  updateAndroidOverlayLyric,
-} from "@/platform/androidOverlay";
 
 /**
  * 播放器核心类
@@ -774,10 +769,6 @@ class PlayerController {
         progress: calculateProgress(currentTime, duration),
         lyricIndex,
       });
-      // 同步 Android 悬浮歌词
-      if (isAndroid && statusStore.showDesktopLyric) {
-        void this.updateAndroidOverlayLyric();
-      }
       // 成功播放一段距离后，重置失败跳过计数
       if (currentTime > 500 && this.failSkipCount > 0) {
         this.failSkipCount = 0;
@@ -1545,34 +1536,8 @@ class PlayerController {
     const statusStore = useStatusStore();
     if (statusStore.showDesktopLyric === show) return;
     statusStore.showDesktopLyric = show;
-    if (isAndroid) {
-      if (show) void requestAndroidOverlayPermission();
-      else void hideAndroidOverlayLyric();
-    } else {
-      playerIpc.toggleDesktopLyric(show);
-    }
+    playerIpc.toggleDesktopLyric(show);
     window.$message.success(`${show ? "已开启" : "已关闭"}桌面歌词`);
-  }
-
-  /** 同步 Android 悬浮歌词内容 */
-  private async updateAndroidOverlayLyric() {
-    const musicStore = useMusicStore();
-    const statusStore = useStatusStore();
-    const settingStore = useSettingStore();
-    const lines =
-      settingStore.showWordLyrics && musicStore.songLyric.yrcData.length > 0
-        ? musicStore.songLyric.yrcData
-        : musicStore.songLyric.lrcData;
-    const line = lines[statusStore.lyricIndex];
-    const lyric = line?.words?.map((word) => word.word).join("") || "";
-    const artist = Array.isArray(musicStore.playSong.artists)
-      ? musicStore.playSong.artists.map((item) => item.name).join(" / ")
-      : musicStore.playSong.artists;
-    await updateAndroidOverlayLyric({
-      title: musicStore.playSong.name,
-      artist,
-      lyric,
-    });
   }
 
   /** 切换任务栏歌词 */

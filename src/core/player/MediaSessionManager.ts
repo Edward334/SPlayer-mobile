@@ -4,6 +4,7 @@ import { getPlaySongData } from "@/utils/format";
 import { msToS } from "@/utils/time";
 import type { SystemMediaEvent } from "@emi";
 import { throttle } from "lodash-es";
+import { getNativeAudioPlugin, isCapacitor } from "@/platform/capacitor";
 import { usePlayerController } from "./PlayerController";
 import {
   enableDiscordRpc,
@@ -23,6 +24,7 @@ import {
 class MediaSessionManager {
   private metadataAbortController: AbortController | null = null;
   private currentRate: number = 1;
+  private nativeActionListener: { remove: () => Promise<void> } | null = null;
 
   private throttledSendTimeline = throttle((currentTime: number, duration: number) => {
     sendMediaTimeline(currentTime, duration);
@@ -96,6 +98,17 @@ class MediaSessionManager {
     const statusStore = useStatusStore();
 
     this.currentRate = statusStore.playRate;
+
+    if (isCapacitor() && !this.nativeActionListener) {
+      void getNativeAudioPlugin()
+        ?.addListener("mediaAction", (event) => {
+          if (event.action === "next") player.nextOrPrev("next");
+          if (event.action === "previous") player.nextOrPrev("prev");
+        })
+        .then((listener) => {
+          this.nativeActionListener = listener;
+        });
+    }
 
     if (isElectron) {
       window.electron.ipcRenderer.removeAllListeners("media-event");

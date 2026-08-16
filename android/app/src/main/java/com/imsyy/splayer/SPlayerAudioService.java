@@ -8,10 +8,20 @@ import android.content.Intent;
 import android.media.session.MediaSession;
 import android.media.MediaMetadata;
 import android.media.session.PlaybackState;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 import androidx.annotation.Nullable;
+
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SPlayerAudioService extends Service {
     private static final String CHANNEL_ID = "splayer-playback";
@@ -21,6 +31,9 @@ public class SPlayerAudioService extends Service {
     private static String pendingTitle = "SPlayer";
     private static String pendingArtist = "";
     private static String pendingArtwork = "";
+    private static Bitmap pendingArtworkBitmap;
+    private static String loadedArtwork = "";
+    private static final ExecutorService artworkExecutor = Executors.newSingleThreadExecutor();
     private static long pendingDurationMs;
     private static boolean pendingPlaying;
     private static long pendingPositionMs;
@@ -45,6 +58,16 @@ public class SPlayerAudioService extends Service {
             @Override
             public void onSeekTo(long pos) {
                 SPlayerAudioPlugin.handleMediaSeek(pos);
+            }
+
+            @Override
+            public void onSkipToNext() {
+                SPlayerAudioPlugin.handleMediaNext();
+            }
+
+            @Override
+            public void onSkipToPrevious() {
+                SPlayerAudioPlugin.handleMediaPrevious();
             }
         });
         mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
@@ -89,15 +112,55 @@ public class SPlayerAudioService extends Service {
         pendingArtist = artist;
         pendingArtwork = artwork == null ? "" : artwork;
         pendingDurationMs = Math.max(0, durationMs);
+        if (!pendingArtwork.equals(loadedArtwork)) pendingArtworkBitmap = null;
+        if (pendingArtwork.isEmpty()) {
+            pendingArtworkBitmap = null;
+            loadedArtwork = "";
+        }
         if (activeService == null || activeService.mediaSession == null) return;
+        activeService.applyMetadata();
+        loadArtwork(pendingArtwork);
+    }
+
+    private void applyMetadata() {
         MediaMetadata metadata = new MediaMetadata.Builder()
-                .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
+                .putString(MediaMetadata.METADATA_KEY_TITLE, pendingTitle)
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, pendingArtist)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, "SPlayer")
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, pendingDurationMs)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, pendingArtwork)
+                .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, pendingArtworkBitmap)
                 .build();
-        activeService.mediaSession.setMetadata(metadata);
+        mediaSession.setMetadata(metadata);
+    }
+
+    private static void loadArtwork(String artwork) {
+        if (artwork == null || artwork.isEmpty() || artwork.equals(loadedArtwork)) return;
+        artworkExecutor.execute(() -> {
+            Bitmap bitmap = null;
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(artwork).openConnection();
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(10000);
+                try (InputStream stream = connection.getInputStream()) {
+                    bitmap = BitmapFactory.decodeStream(stream);
+                }
+            } catch (Exception ignored) {
+                return;
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            Bitmap loadedBitmap = bitmap;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (!artwork.equals(pendingArtwork)) return;
+                pendingArtworkBitmap = loadedBitmap;
+                loadedArtwork = artwork;
+                if (activeService != null && activeService.mediaSession != null) {
+                    activeService.applyMetadata();
+                }
+            });
+        });
     }
 
     static void updatePlaybackState(boolean playing, long positionMs) {
@@ -109,7 +172,8 @@ public class SPlayerAudioService extends Service {
         int state = playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED;
         PlaybackState playbackState = new PlaybackState.Builder()
                 .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE
-                        | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_PLAY_PAUSE)
+                        | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_PLAY_PAUSE
+                        | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS)
                 .setState(state, safePosition, 1.0f)
                 .build();
         activeService.mediaSession.setPlaybackState(playbackState);
