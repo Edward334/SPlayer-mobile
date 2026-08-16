@@ -278,9 +278,14 @@ watchEffect(() => {
 });
 
 // 当前播放时间
-watchEffect(() => {
-  if (props.currentTime !== undefined) playerRef.value?.setCurrentTime(props.currentTime);
-});
+watch(
+  () => props.currentTime,
+  (currentTime, previousTime) => {
+    const isSeek = previousTime !== undefined && Math.abs(currentTime - previousTime) >= 1000;
+    playerRef.value?.setCurrentTime(currentTime, isSeek);
+  },
+  { immediate: true },
+);
 
 // 渐变宽度
 watchEffect(() => {

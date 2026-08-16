@@ -28,6 +28,8 @@ const settingStore = useSettingStore();
 
 const player = usePlayerController();
 
+const throttledSetSeek = useThrottleFn((value: number) => setSeek(value), 30);
+
 // 拖动时的临时值
 const dragValue = ref(0);
 // 是否拖动
@@ -47,7 +49,7 @@ const sliderProgress = computed({
       return;
     }
     // 结束或者为点击
-    useThrottleFn((value: number) => setSeek(value), 30);
+    throttledSetSeek(value);
   },
 });
 
@@ -60,9 +62,10 @@ const startDrag = () => {
 
 // 结束拖拽
 const endDrag = () => {
+  const targetValue = dragValue.value;
   isDragging.value = false;
   // 直接更改进度
-  setSeek(dragValue.value);
+  setSeek(targetValue);
 };
 
 /**

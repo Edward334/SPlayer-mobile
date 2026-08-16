@@ -47,6 +47,7 @@
             <!-- 倒计时行 -->
             <div
               v-if="item.type === 'countdown'"
+              :id="`lrc-${index}`"
               class="countdown-line"
               :style="{
                 animationPlayState: statusStore.playStatus ? 'running' : 'paused',
