@@ -539,7 +539,8 @@ const contentTransform = computed(() => {
         flex: 1;
         min-height: 0;
         position: relative;
-        width: 100%;
+        width: calc(100% + 24px);
+        margin-left: -12px;
         overflow: hidden;
         :deep(.player-lyric),
         :deep(.lyric),

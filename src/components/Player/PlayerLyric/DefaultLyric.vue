@@ -574,6 +574,8 @@ onBeforeUnmount(() => {
     }
     @media (max-width: 990px) {
       padding-right: 20px;
+      padding-left: 0;
+      min-width: 0;
     }
   }
   .placeholder {
@@ -639,11 +641,13 @@ onBeforeUnmount(() => {
       transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
     cursor: pointer;
     width: 100%;
+    min-width: 0;
     .content {
       display: block;
       font-size: var(--lrc-size);
       font-weight: var(--lrc-bold);
       width: 100%;
+      min-width: 0;
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;
@@ -694,6 +698,7 @@ onBeforeUnmount(() => {
       font-size: var(--lrc-tran-size);
       transition: opacity 0.35s;
       width: 100%;
+      min-width: 0;
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;
@@ -705,6 +710,7 @@ onBeforeUnmount(() => {
       font-size: var(--lrc-roma-size);
       transition: opacity 0.35s;
       width: 100%;
+      min-width: 0;
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;

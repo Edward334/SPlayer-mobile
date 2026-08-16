@@ -200,11 +200,25 @@ watch(lyricPlayerRef, (player) => {
     @media (max-width: 990px) {
       padding: 0;
       margin-left: 0;
+      min-width: 0;
       .amll-lyric-player {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
         > div {
           padding-left: 20px;
           padding-right: 20px;
+          width: 100%;
+          min-width: 0;
+          max-width: none;
         }
+      }
+
+      .FmKaba_lyricLineWrapper,
+      .FmKaba_lyricLine {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
       }
     }
   }
