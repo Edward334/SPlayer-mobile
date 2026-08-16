@@ -1,7 +1,7 @@
 <template>
   <!-- 全屏封面 -->
   <div
-    v-if="settingStore.playerType === 'fullscreen' && !isTablet"
+    v-if="settingStore.playerType === 'fullscreen' && !isTablet && !isMobile"
     class="full-screen"
     :style="{ '--gradient-percent': settingStore.playerFullscreenGradient + '%' }"
   >
@@ -56,7 +56,7 @@ import { useMobile } from "@/composables/useMobile";
 import { useBlobURLManager } from "@/core/resource/BlobURLManager";
 import { useSettingStore, useStatusStore, useMusicStore } from "@/stores";
 import { isLogin } from "@/utils/auth";
-import { isElectron } from "@/utils/env";
+import { isElectron, isMobile } from "@/utils/env";
 import { isEmpty } from "lodash-es";
 
 const musicStore = useMusicStore();

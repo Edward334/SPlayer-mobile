@@ -122,9 +122,10 @@
 </template>
 
 <script setup lang="ts">
+import { App } from "@capacitor/app";
 import { useMusicStore, useStatusStore, useSettingStore, useDataStore } from "@/stores";
 import { useBlobURLManager } from "@/core/resource/BlobURLManager";
-import { isElectron } from "@/utils/env";
+import { isCapacitor, isElectron } from "@/utils/env";
 import { useMobile } from "@/composables/useMobile";
 import { useInit } from "@/composables/useInit";
 
@@ -177,15 +178,41 @@ onMounted(() => {
     });
   }
 });
+
+let backButtonHandle: { remove: () => Promise<void> } | null = null;
+
+onMounted(async () => {
+  if (!isCapacitor) return;
+  backButtonHandle = await App.addListener("backButton", ({ canGoBack }) => {
+    if (statusStore.showFullPlayer) {
+      statusStore.showFullPlayer = false;
+      return;
+    }
+    if (canGoBack) {
+      window.history.back();
+    } else {
+      void App.exitApp();
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  void backButtonHandle?.remove();
+  backButtonHandle = null;
+});
 </script>
 
 <style lang="scss" scoped>
 #app-layout {
   width: 100%;
   height: 100%;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
 }
 
 .background-container {

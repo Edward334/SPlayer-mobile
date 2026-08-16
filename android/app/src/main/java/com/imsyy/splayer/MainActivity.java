@@ -3,6 +3,7 @@ package com.imsyy.splayer;
 import com.getcapacitor.BridgeActivity;
 import android.Manifest;
 import android.os.Build;
+import androidx.core.view.WindowCompat;
 
 public class MainActivity extends BridgeActivity {
     @Override
@@ -10,6 +11,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SPlayerAudioPlugin.class);
         registerPlugin(SPlayerOverlayPlugin.class);
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {

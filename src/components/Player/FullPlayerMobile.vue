@@ -252,10 +252,14 @@ const contentTransform = computed(() => {
 .full-player-mobile {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
   .top-bar {
     position: absolute;
     width: 100%;
@@ -467,7 +471,7 @@ const contentTransform = computed(() => {
     }
     .lyric-page {
       padding: 0 24px;
-      padding-top: 60px;
+      padding-top: 16px;
       display: flex;
       flex-direction: column;
       .lyric-header {

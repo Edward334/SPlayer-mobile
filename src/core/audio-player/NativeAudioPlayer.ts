@@ -25,6 +25,9 @@ export class NativeAudioPlayer implements IPlaybackEngine {
     rate: 1,
   };
   private errorCode = 0;
+  private wallClockStartedAt = 0;
+  private wallClockBaseTime = 0;
+  private statePollTimer: ReturnType<typeof setInterval> | null = null;
 
   public readonly capabilities: EngineCapabilities = {
     supportsRate: true,
@@ -50,6 +53,7 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   public destroy(): void {
     this.pluginListeners.forEach((listener) => void listener.remove());
     this.pluginListeners = [];
+    this.stopStatePolling();
     if (this.plugin) void this.plugin.stop();
     else this.fallback.destroy();
   }
@@ -72,12 +76,16 @@ export class NativeAudioPlayer implements IPlaybackEngine {
     }
     await this.plugin.play();
     this.state.paused = false;
+    this.startWallClock();
+    this.startStatePolling();
   }
 
   public async resume(options?: { fadeIn?: boolean; fadeDuration?: number }): Promise<void> {
     if (!this.plugin) return this.fallback.resume(options);
     await this.plugin.play();
     this.state.paused = false;
+    this.startWallClock();
+    this.startStatePolling();
   }
 
   public pause(_options?: PauseOptions): void {
@@ -86,7 +94,10 @@ export class NativeAudioPlayer implements IPlaybackEngine {
       return;
     }
     void this.plugin.pause();
+    this.syncWallClock();
     this.state.paused = true;
+    this.wallClockStartedAt = 0;
+    this.stopStatePolling();
   }
 
   public stop(): void {
@@ -97,6 +108,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
     void this.plugin.stop();
     this.state.currentTime = 0;
     this.state.paused = true;
+    this.wallClockStartedAt = 0;
+    this.stopStatePolling();
   }
 
   public seek(time: number): void {
@@ -105,6 +118,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
       return;
     }
     this.state.currentTime = time;
+    this.wallClockBaseTime = time;
+    if (!this.state.paused) this.wallClockStartedAt = performance.now();
     void this.plugin.seek({ time });
   }
 
@@ -165,7 +180,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   }
 
   public get currentTime(): number {
-    return this.plugin ? this.state.currentTime : this.fallback.currentTime;
+    if (!this.plugin) return this.fallback.currentTime;
+    return this.state.paused ? this.state.currentTime : this.getWallClockTime();
   }
 
   public get paused(): boolean {
@@ -202,19 +218,62 @@ export class NativeAudioPlayer implements IPlaybackEngine {
     for (const [nativeEvent, eventType] of events) {
       const handle = await this.plugin.addListener(nativeEvent, (payload) => {
         if (nativeEvent === "timeUpdate") {
+          this.syncWallClock();
           this.state.currentTime = Number(payload.currentTime ?? this.state.currentTime);
           this.state.duration = Number(payload.duration ?? this.state.duration);
+          this.wallClockBaseTime = this.state.currentTime;
+          if (!this.state.paused) this.wallClockStartedAt = performance.now();
         } else if (nativeEvent === "error") {
           this.errorCode = Number(payload.errorCode ?? AudioErrorCode.NETWORK);
         } else if (nativeEvent === "play") {
           this.state.paused = false;
+          this.startWallClock();
         } else if (nativeEvent === "pause" || nativeEvent === "ended") {
+          this.syncWallClock();
           this.state.paused = true;
+          this.wallClockStartedAt = 0;
+          this.stopStatePolling();
         }
         this.dispatch(eventType, payload);
       });
       this.pluginListeners.push(handle);
     }
+  }
+
+  private getWallClockTime(): number {
+    if (!this.wallClockStartedAt) return this.state.currentTime;
+    const elapsed = (performance.now() - this.wallClockStartedAt) / 1000;
+    return this.wallClockBaseTime + elapsed * this.state.rate;
+  }
+
+  private syncWallClock(): void {
+    if (!this.wallClockStartedAt) return;
+    this.state.currentTime = this.getWallClockTime();
+    this.wallClockBaseTime = this.state.currentTime;
+    this.wallClockStartedAt = performance.now();
+  }
+
+  private startWallClock(): void {
+    this.wallClockBaseTime = this.state.currentTime;
+    this.wallClockStartedAt = performance.now();
+  }
+
+  private startStatePolling(): void {
+    if (!this.plugin || this.statePollTimer !== null) return;
+    this.statePollTimer = setInterval(() => {
+      void this.plugin?.getState().then((state) => {
+        this.state.currentTime = Number(state.currentTime ?? this.state.currentTime);
+        this.state.duration = Number(state.duration ?? this.state.duration);
+        this.state.paused = Boolean(state.paused);
+        this.dispatch(AUDIO_EVENTS.TIME_UPDATE, state);
+      });
+    }, 250);
+  }
+
+  private stopStatePolling(): void {
+    if (this.statePollTimer === null) return;
+    clearInterval(this.statePollTimer);
+    this.statePollTimer = null;
   }
 
   private dispatch(type: string, detail?: unknown): void {
