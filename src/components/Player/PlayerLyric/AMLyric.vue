@@ -220,6 +220,11 @@ watch(lyricPlayerRef, (player) => {
         min-width: 0;
         max-width: none;
       }
+
+      // 移动端隐藏倒计时点，因为定位问题且屏幕空间有限
+      div[class^="_interludeDots"] {
+        display: none !important;
+      }
     }
   }
 

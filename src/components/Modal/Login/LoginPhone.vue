@@ -165,34 +165,43 @@ const login = debounce(async (e: MouseEvent) => {
   e.preventDefault();
   // 验证输入
   await phoneFormRef.value?.validate();
-  // 验证验证码
-  const captchaResult = await verifyCaptcha(
-    phoneFormData.value.phone as number,
-    phoneFormData.value.captcha as number,
-    phoneFormData.value.country as number,
-  );
-  if (captchaResult.code !== 200) {
-    window.$message.error("验证码错误，请重试");
-    return;
-  }
-  // 登录
-  const loginResult = await loginPhone(
-    phoneFormData.value.phone as number,
-    phoneFormData.value.captcha as number,
-    phoneFormData.value.country as number,
-  );
-  if (loginResult.code !== 200) {
-    window.$message.error("登录失败，请重试");
-    return;
-  }
-  // 是否含有 MUSIC_U
-  if (loginResult.cookie && loginResult.cookie.includes("MUSIC_U")) {
-    // 去除 HTTPOnly
-    loginResult.cookie = loginResult.cookie.replaceAll(" HTTPOnly", "");
-    // 储存登录信息
-    emit("saveLogin", loginResult, "phone");
-  } else {
-    window.$message.error("登录出错，请重试");
+  try {
+    // 验证验证码
+    const captchaResult = await verifyCaptcha(
+      phoneFormData.value.phone as number,
+      phoneFormData.value.captcha as number,
+      phoneFormData.value.country as number,
+    );
+    console.log("验证码验证结果:", captchaResult);
+    if (captchaResult.code !== 200) {
+      const errorMsg = captchaResult.message || captchaResult.msg || "验证码错误";
+      window.$message.error(`${errorMsg}，请重试`);
+      return;
+    }
+    // 登录
+    const loginResult = await loginPhone(
+      phoneFormData.value.phone as number,
+      phoneFormData.value.captcha as number,
+      phoneFormData.value.country as number,
+    );
+    console.log("登录结果:", loginResult);
+    if (loginResult.code !== 200) {
+      const errorMsg = loginResult.message || loginResult.msg || "登录失败";
+      window.$message.error(`${errorMsg}，请重试`);
+      return;
+    }
+    // 是否含有 MUSIC_U
+    if (loginResult.cookie && loginResult.cookie.includes("MUSIC_U")) {
+      // 去除 HTTPOnly
+      loginResult.cookie = loginResult.cookie.replaceAll(" HTTPOnly", "");
+      // 储存登录信息
+      emit("saveLogin", loginResult, "phone");
+    } else {
+      window.$message.error("登录出错，未获取到有效的登录凭证，请重试");
+    }
+  } catch (error) {
+    console.error("登录过程出错:", error);
+    window.$message.error(`登录出错: ${error}`);
   }
 }, 300);
 
