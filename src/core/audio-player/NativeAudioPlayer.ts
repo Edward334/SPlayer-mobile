@@ -44,7 +44,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   public init(): void {
     if (this.plugin) {
       void this.plugin.initialize?.();
-      void this.bindPluginEvents();
+      // 立即绑定事件监听器，不等待
+      this.bindPluginEvents();
       return;
     }
     this.fallback.init();
@@ -223,6 +224,9 @@ export class NativeAudioPlayer implements IPlaybackEngine {
 
   private async bindPluginEvents(): Promise<void> {
     if (!this.plugin) return;
+
+    console.log("[NativeAudioPlayer] Binding plugin events...");
+
     const events: ["timeUpdate" | "play" | "pause" | "ended" | "error", AudioEventType][] = [
       ["timeUpdate", AUDIO_EVENTS.TIME_UPDATE],
       ["play", AUDIO_EVENTS.PLAY],
@@ -230,37 +234,47 @@ export class NativeAudioPlayer implements IPlaybackEngine {
       ["ended", AUDIO_EVENTS.ENDED],
       ["error", AUDIO_EVENTS.ERROR],
     ];
+
     for (const [nativeEvent, eventType] of events) {
-      const handle = await this.plugin.addListener(nativeEvent, (payload) => {
-        if (nativeEvent === "timeUpdate") {
-          this.syncWallClock();
-          this.state.currentTime = Number(payload.currentTime ?? this.state.currentTime);
-          this.state.duration = Number(payload.duration ?? this.state.duration);
-          if (this.state.duration > 0)
-            this.state.currentTime = Math.min(this.state.currentTime, this.state.duration);
-          this.wallClockBaseTime = this.state.currentTime;
-          if (!this.state.paused) this.wallClockStartedAt = performance.now();
-        } else if (nativeEvent === "error") {
-          this.errorCode = Number(payload.errorCode ?? AudioErrorCode.NETWORK);
-        } else if (nativeEvent === "play") {
-          this.state.paused = false;
-          this.startWallClock();
-        } else if (nativeEvent === "pause") {
-          this.syncWallClock();
-          this.state.paused = true;
-          this.wallClockStartedAt = 0;
-          this.stopStatePolling();
-        } else if (nativeEvent === "ended") {
-          this.state.currentTime = this.state.duration;
-          this.state.paused = true;
-          this.wallClockBaseTime = this.state.currentTime;
-          this.wallClockStartedAt = 0;
-          this.stopStatePolling();
-        }
-        this.dispatch(eventType, payload);
-      });
-      this.pluginListeners.push(handle);
+      try {
+        const handle = await this.plugin.addListener(nativeEvent, (payload) => {
+          console.log(`[NativeAudioPlayer] Received event: ${nativeEvent}`, payload);
+
+          if (nativeEvent === "timeUpdate") {
+            this.syncWallClock();
+            this.state.currentTime = Number(payload.currentTime ?? this.state.currentTime);
+            this.state.duration = Number(payload.duration ?? this.state.duration);
+            if (this.state.duration > 0)
+              this.state.currentTime = Math.min(this.state.currentTime, this.state.duration);
+            this.wallClockBaseTime = this.state.currentTime;
+            if (!this.state.paused) this.wallClockStartedAt = performance.now();
+          } else if (nativeEvent === "error") {
+            this.errorCode = Number(payload.errorCode ?? AudioErrorCode.NETWORK);
+          } else if (nativeEvent === "play") {
+            this.state.paused = false;
+            this.startWallClock();
+          } else if (nativeEvent === "pause") {
+            this.syncWallClock();
+            this.state.paused = true;
+            this.wallClockStartedAt = 0;
+            this.stopStatePolling();
+          } else if (nativeEvent === "ended") {
+            this.state.currentTime = this.state.duration;
+            this.state.paused = true;
+            this.wallClockBaseTime = this.state.currentTime;
+            this.wallClockStartedAt = 0;
+            this.stopStatePolling();
+          }
+          this.dispatch(eventType, payload);
+        });
+        this.pluginListeners.push(handle);
+        console.log(`[NativeAudioPlayer] Event listener registered: ${nativeEvent}`);
+      } catch (error) {
+        console.error(`[NativeAudioPlayer] Failed to bind event ${nativeEvent}:`, error);
+      }
     }
+
+    console.log("[NativeAudioPlayer] All event listeners registered");
   }
 
   private getWallClockTime(): number {

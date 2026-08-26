@@ -11,9 +11,6 @@
     :class="['player-slider', { drag: isDragging }]"
     @dragstart="startDrag"
     @dragend="endDrag"
-    @touchstart.stop
-    @touchmove.stop
-    @touchend.stop
   />
 </template>
 

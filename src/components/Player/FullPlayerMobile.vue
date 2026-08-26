@@ -260,6 +260,7 @@ const contentTransform = computed(() => {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
+  overscroll-behavior: none; // 禁止过度滚动
   .top-bar {
     position: absolute;
     width: 100%;
@@ -311,7 +312,7 @@ const contentTransform = computed(() => {
       flex-direction: column;
       align-items: center;
       padding: 0 24px 40px 24px;
-      overflow-y: auto;
+      overflow: hidden; // 禁止滚动
       .cover-section {
         flex: 1;
         width: 100%;
