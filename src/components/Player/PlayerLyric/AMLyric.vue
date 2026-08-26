@@ -211,6 +211,13 @@ watch(lyricPlayerRef, (player) => {
           width: 100%;
           min-width: 0;
           max-width: none;
+
+          // 移动端强制隐藏倒计时点
+          div[class*="interludeDots"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+          }
         }
       }
 
@@ -221,9 +228,14 @@ watch(lyricPlayerRef, (player) => {
         max-width: none;
       }
 
-      // 移动端隐藏倒计时点，因为定位问题且屏幕空间有限
-      div[class^="_interludeDots"] {
+      // 移动端隐藏倒计时点的后备规则
+      div[class^="_interludeDots"],
+      div[class*="_interludeDots"],
+      [class^="FmKaba_interludeDots"],
+      [class*="FmKaba_interludeDots"] {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
       }
     }
   }

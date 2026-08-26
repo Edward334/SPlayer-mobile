@@ -102,11 +102,15 @@ class MediaSessionManager {
     if (isCapacitor() && !this.nativeActionListener) {
       void getNativeAudioPlugin()
         ?.addListener("mediaAction", (event) => {
+          console.log("[MediaSession] Capacitor media action:", event);
+          if (event.action === "play") player.play();
+          if (event.action === "pause") player.pause();
           if (event.action === "next") player.nextOrPrev("next");
           if (event.action === "previous") player.nextOrPrev("prev");
         })
         .then((listener) => {
           this.nativeActionListener = listener;
+          console.log("[MediaSession] Capacitor media action listener registered");
         });
     }
 
