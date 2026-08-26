@@ -28,6 +28,7 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   private wallClockStartedAt = 0;
   private wallClockBaseTime = 0;
   private statePollTimer: ReturnType<typeof setInterval> | null = null;
+  private eventsBound = false;
 
   public readonly capabilities: EngineCapabilities = {
     supportsRate: true,
@@ -43,9 +44,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
 
   public init(): void {
     if (this.plugin) {
-      void this.plugin.initialize?.();
-      // 立即绑定事件监听器，不等待
-      this.bindPluginEvents();
+      // 先注册监听器，再初始化原生播放器，避免启动事件丢失
+      void this.bindPluginEvents().then(() => this.plugin?.initialize?.());
       return;
     }
     this.fallback.init();
@@ -223,7 +223,8 @@ export class NativeAudioPlayer implements IPlaybackEngine {
   }
 
   private async bindPluginEvents(): Promise<void> {
-    if (!this.plugin) return;
+    if (!this.plugin || this.eventsBound) return;
+    this.eventsBound = true;
 
     console.log("[NativeAudioPlayer] Binding plugin events...");
 

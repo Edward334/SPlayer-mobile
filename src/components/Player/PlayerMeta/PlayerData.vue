@@ -299,11 +299,17 @@ const jumpToRadio = debounce(
   .name {
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    min-width: 0;
     margin-left: 4px;
     .name-text {
+      min-width: 0;
       font-size: 26px;
       font-weight: bold;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .n-icon {
       margin-left: 12px;
@@ -312,9 +318,12 @@ const jumpToRadio = debounce(
     }
   }
   .alia {
+    display: block;
+    min-width: 0;
     margin: 6px 0 6px 4px;
     opacity: 0.6;
     font-size: 18px;
+    line-height: 1.25;
     line-clamp: 1;
     -webkit-line-clamp: 1;
   }
@@ -411,6 +420,10 @@ const jumpToRadio = debounce(
     }
     @media (max-width: 990px) {
       padding: 0 2px;
+      .name,
+      .alia {
+        max-width: 100%;
+      }
     }
   }
   &.center {

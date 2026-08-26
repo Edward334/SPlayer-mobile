@@ -132,6 +132,7 @@ public class SPlayerAudioService extends Service {
                 .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, pendingArtworkBitmap)
                 .build();
         mediaSession.setMetadata(metadata);
+        updateNotification();
     }
 
     private static void loadArtwork(String artwork) {
@@ -163,6 +164,20 @@ public class SPlayerAudioService extends Service {
         });
     }
 
+    private void updateNotification() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager == null || mediaSession == null) return;
+        Notification notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle(pendingTitle)
+                .setContentText(pendingArtist)
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setOngoing(pendingPlaying)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .setStyle(new Notification.MediaStyle().setMediaSession(mediaSession.getSessionToken()))
+                .build();
+        manager.notify(NOTIFICATION_ID, notification);
+    }
+
     static void updatePlaybackState(boolean playing, long positionMs) {
         pendingPlaying = playing;
         pendingPositionMs = positionMs;
@@ -177,6 +192,7 @@ public class SPlayerAudioService extends Service {
                 .setState(state, safePosition, 1.0f)
                 .build();
         activeService.mediaSession.setPlaybackState(playbackState);
+        activeService.updateNotification();
     }
 
     private void createNotificationChannel() {

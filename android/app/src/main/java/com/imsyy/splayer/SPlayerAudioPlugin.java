@@ -75,10 +75,13 @@ public class SPlayerAudioPlugin extends Plugin {
                 notifyListeners("ended", new JSObject());
             });
             player.setOnErrorListener((mp, what, extra) -> {
+                prepared = false;
+                handler.removeCallbacks(progressTicker);
                 JSObject error = new JSObject();
                 error.put("errorCode", extra);
                 notifyListeners("error", error);
-                return false;
+                call.reject("Unable to decode audio", error);
+                return true;
             });
             player.prepareAsync();
         } catch (IOException error) {
@@ -115,7 +118,13 @@ public class SPlayerAudioPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         handler.removeCallbacks(progressTicker);
-        if (player != null && prepared) player.stop();
+        if (player != null && prepared) {
+            try {
+                player.stop();
+            } catch (IllegalStateException ignored) {
+                // MediaPlayer may already be in the error state.
+            }
+        }
         prepared = false;
         SPlayerAudioService.updatePlaybackState(false, 0);
         getContext().stopService(new Intent(getContext(), SPlayerAudioService.class));

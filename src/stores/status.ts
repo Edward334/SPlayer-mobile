@@ -177,7 +177,7 @@ export const useStatusStore = defineStore("status", {
     backgroundImageUrl: null,
     showPlayBar: true,
     playStatus: false,
-    playLoading: true,
+    playLoading: false,
     playListShow: false,
     showFullPlayer: false,
     playerMetaShow: true,

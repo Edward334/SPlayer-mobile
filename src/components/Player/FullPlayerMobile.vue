@@ -401,6 +401,7 @@ const contentTransform = computed(() => {
         .progress-section {
           display: flex;
           align-items: center;
+          touch-action: none;
           margin: 0 4px 30px;
           .time {
             font-size: 12px;
